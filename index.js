@@ -32,7 +32,7 @@ let owner = 'ahmadzakiyo'//Username Owner
 let groupId = '-1001915142805' // ID grup Telegram gunakan Helper Bot untuk mendapatka ID Group dengan cara /info @Username_Group
 let channelId = '-1001818314717' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
 let PHOTO_URL = 'https://telegra.ph/file/e66a34344f80ac5af8ebe.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
-let MONGODB_URI = 'mongodb+srv://murafulan:lelang18@cluster0.qblcl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+let MONGODB_URI = 'mongodb+srv://ahmadzakime:lelang18@restapi.syyz2sc.mongodb.net/?retryWrites=true&w=majority&appName=Restapi'
 let SERVICE_PAYDISINI = '11'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
