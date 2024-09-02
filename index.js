@@ -36,7 +36,7 @@ mongoose.connect(MONGODB_URI, {
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
-  
+
 // Schema definitions
 const productSchema = new mongoose.Schema({
   nama: { type: String, required: true },
@@ -52,15 +52,13 @@ const userSchema = new mongoose.Schema({
   saldo: { type: Number, default: 0 },
 });
 
-// Schema Stock, sesuaikan dengan model Anda
 const stockSchema = new mongoose.Schema({
   kode: String,
-  email: String,
+  email: { type: String, required: true }, // Menambahkan required jika diperlukan
   password: String,
   twoFactorAuth: String, // Opsional 2FA
 });
 
-// Definisi model Deposit
 const depositSchema = new mongoose.Schema({
   userId: { type: Number, required: true },
   amount: { type: Number, required: true },
