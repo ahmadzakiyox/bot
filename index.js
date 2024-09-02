@@ -89,6 +89,32 @@ const Deposit = mongoose.model('Deposit', depositSchema);
 
 
 //============FUNCTION===========
+// Function to make API requests
+const doRequest = async (method, endpoint, data) => {
+  const url = `https://api.digitalocean.com/v2${endpoint}`;
+  const config = {
+    method,
+    url,
+    headers: {
+      'Authorization' : 'Bearer dop_v1_9b97b1d149d46c352b58b028c8492d5f0d7ce981738cdfa1a838da4ee04f5d90',
+      'Content-Type': 'application/json'
+    },
+    data
+  };
+  const response = await axios(config);
+  return response.data;
+};
+
+// Function to generate a random password
+const generateRandomPassword = () => {
+  return Math.random().toString(36).slice(-8);
+};
+
+// Function to fetch OS images dynamically
+async function fetchOSImages() {
+    return await doRequest('get', '/images?type=distribution');
+};
+
 // Helper function to load transaction count
 const loadTransactionCount = () => {
   try {
