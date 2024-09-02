@@ -26,7 +26,7 @@ const prices = {
 };
 
 //============CONFIG============//
-let token = ["5913815080:AAG9ZZfdShhl8pCUPmzcE0OwlnmyRg6EYQU"]// TOKEN BOT TELEGRAM
+let token = ["7132427541:AAEFLERuvFo9MYy8LSyjpaYDrBui408gmwA"]// TOKEN BOT TELEGRAM
 let botname = 'HLXEVO'//NAMA UNTUK BOT 
 let ownerId = '1265481161'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
 let owner = 'ahmadzakiyo'//Username Owner
