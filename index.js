@@ -96,13 +96,20 @@ const doRequest = async (method, endpoint, data) => {
     method,
     url,
     headers: {
-      'Authorization' : `Bearer ${DO_APIKEY}`,
+      'Authorization': `Bearer ${DO_APIKEY}`,
       'Content-Type': 'application/json'
     },
     data
   };
-  const response = await axios(config);
-  return response.data;
+
+  try {
+    const response = await axios(config);
+    return response.data;
+  } catch (error) {
+    // Log the entire error for debugging
+    console.error('Error making API request:', error.response ? error.response.data : error.message);
+    throw error; // Re-throw the error to handle it further up the call stack if needed
+  }
 };
 
 // Function to generate a random password
