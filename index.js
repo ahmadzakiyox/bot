@@ -27,14 +27,14 @@ const prices = {
 
 //============CONFIG============//
 let token = ["7132427541:AAEFLERuvFo9MYy8LSyjpaYDrBui408gmwA"]// TOKEN BOT TELEGRAM
-let botname = 'HLXEVO'//NAMA UNTUK BOT 
-let ownerId = '1265481161'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
-let owner = 'ahmadzakiyo'//Username Owner
-let groupId = '-1001915142805' // ID grup Telegram gunakan Helper Bot untuk mendapatka ID Group dengan cara /info @Username_Group
-let channelId = '-1001818314717' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
-let PHOTO_URL = 'https://telegra.ph/file/e66a34344f80ac5af8ebe.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
+let botname = 'BOGEL STORE BOT'//NAMA UNTUK BOT 
+let ownerId = '6752163466'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
+let owner = 'BogelStore1'//Username Owner
+let groupId = '-1002081929222' // ID grup Telegram gunakan Helper Bot untuk mendapatka ID Group dengan cara /info @Username_Group
+let channelId = '-1002160623851' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
+let PHOTO_URL = 'https://telegra.ph//file/a22656931d544e1bd216e.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
 let MONGODB_URI = 'mongodb+srv://ahmadzakime:lelang18@restapi.syyz2sc.mongodb.net/?retryWrites=true&w=majority&appName=Restapi'
-let SERVICE_PAYDISINI = '11'//Nomor Service PAYDISINI
+let SERVICE_PAYDISINI = '23'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
 const bot = new Telegraf(token);
