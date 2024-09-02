@@ -17,7 +17,7 @@ const doRequest = async (method, endpoint, data) => {
     method,
     url,
     headers: {
-      'Authorization' : `Bearer ${global.DO_APIKEY}`,
+      'Authorization' : 'Bearer dop_v1_9b97b1d149d46c352b58b028c8492d5f0d7ce981738cdfa1a838da4ee04f5d90',
       'Content-Type': 'application/json'
     },
     data
