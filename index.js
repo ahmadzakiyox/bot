@@ -27,7 +27,7 @@ const prices = {
 };
 
 //============CONFIG============//
-let token = ["7451449092:AAESGC6N7xHp148fj5nAgkXOLUq-Ax18hoU"]// TOKEN BOT TELEGRAM
+let token = ["5913815080:AAG9ZZfdShhl8pCUPmzcE0OwlnmyRg6EYQU"]// TOKEN BOT TELEGRAM
 let botname = 'HLXEVO'//NAMA UNTUK BOT 
 let ownerId = '1265481161'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
 let owner = 'ahmadzakiyo'//Username Owner
@@ -38,9 +38,6 @@ let MONGODB_URI = 'mongodb+srv://murafulan:lelang18@cluster0.qblcl.mongodb.net/?
 let SERVICE_PAYDISINI = '11'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
-
-const bot = new Telegraf(token);
-bot.use(session());
 
 
 //==========MONGODB CONNECTION========== 
