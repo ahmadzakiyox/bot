@@ -937,6 +937,82 @@ bot.action(/region_.+/, async (ctx) => {
   ctx.deleteMessage(); // Hapus pesan sebelumnya
 });
 
+//============BOT ON============
+// Handle input dari pengguna untuk jumlah deposit
+bot.hears(/^\d+$/, async (ctx) => {
+  const amount = parseInt(ctx.message.text);
+  const userId = ctx.from.id;
+
+  if (!depositState[userId] || depositState[userId].action !== 'request_amount') {
+    return ctx.reply('Anda tidak sedang dalam proses deposit.');
+  }
+
+  if (isNaN(amount) || amount <= 0) {
+    return ctx.reply('Jumlah deposit harus berupa angka positif.');
+  }
+
+  const uniqueCode = `user${userId}-${Date.now()}`;
+  const key = 'fdf655de25e8b2da1f757206fa631cb9';
+  const service = '11';
+  const note = 'Deposit saldo';
+  const validTime = `${timepaydisini}`;
+  const typeFee = '1';
+  const signatureString = `${key}${uniqueCode}${service}${amount}${validTime}NewTransaction`;
+  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
+
+  try {
+    const response = await axios.post('https://api.paydisini.co.id/v1/', new URLSearchParams({
+      key,
+      request: 'new',
+      unique_code: uniqueCode,
+      service,
+      amount,
+      note,
+      valid_time: validTime,
+      type_fee: typeFee,
+      payment_guide: true,
+      signature,
+    }), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+  }
+    });
+
+    if (response.data.success) {
+      const { data } = response.data;
+      const qrcodeUrl = data.qrcode_url;
+      const { service_name, balance, fee, type_fee, note, status, expired } = data;
+
+      // Simpan informasi deposit ke database
+      const newDeposit = new Deposit({
+        userId,
+        amount,
+        status: 'pending',
+        uniqueCode,
+      });
+      await newDeposit.save();
+
+      await ctx.replyWithPhoto(
+        { url: qrcodeUrl },
+        {
+          caption: `Informasi Deposit:\n- Service Name: ${service_name}\n- Amount: ${amount}\n- Jumlah deposit: ${balance}\n- Fee: ${fee}\n- Type Fee: ${type_fee}\n- Note: ${note}\n- Status: ${status}\n- Expired: ${expired}`,
+        }
+      );
+
+      console.log(`Deposit request created: ${JSON.stringify(data)}`);
+    } else {
+      ctx.reply('Minimal deposit adalah Rp1000');
+      console.log(`Failed to create deposit request: ${JSON.stringify(response.data)}`);
+    }
+  } catch (error) {
+    ctx.reply('Gagal membuat permintaan deposit.');
+    console.log(`Failed to create deposit request: ${error.message}`);
+  }
+
+  // Hapus state setelah selesai
+  delete depositState[userId];
+});
+
 // Handle note input for RDP
 bot.on('text', async (ctx) => {
   const userSelection = userSelections[ctx.from.id];
@@ -1153,82 +1229,6 @@ const listVMs = async (ctx) => {
     console.error('Error fetching VM list:', error);
   }
 };
-
-//============BOT ON============
-// Handle input dari pengguna untuk jumlah deposit
-bot.hears(/^\d+$/, async (ctx) => {
-  const amount = parseInt(ctx.message.text);
-  const userId = ctx.from.id;
-
-  if (!depositState[userId] || depositState[userId].action !== 'request_amount') {
-    return ctx.reply('Anda tidak sedang dalam proses deposit.');
-  }
-
-  if (isNaN(amount) || amount <= 0) {
-    return ctx.reply('Jumlah deposit harus berupa angka positif.');
-  }
-
-  const uniqueCode = `user${userId}-${Date.now()}`;
-  const key = 'fdf655de25e8b2da1f757206fa631cb9';
-  const service = '11';
-  const note = 'Deposit saldo';
-  const validTime = `${timepaydisini}`;
-  const typeFee = '1';
-  const signatureString = `${key}${uniqueCode}${service}${amount}${validTime}NewTransaction`;
-  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
-
-  try {
-    const response = await axios.post('https://api.paydisini.co.id/v1/', new URLSearchParams({
-      key,
-      request: 'new',
-      unique_code: uniqueCode,
-      service,
-      amount,
-      note,
-      valid_time: validTime,
-      type_fee: typeFee,
-      payment_guide: true,
-      signature,
-    }), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-  }
-    });
-
-    if (response.data.success) {
-      const { data } = response.data;
-      const qrcodeUrl = data.qrcode_url;
-      const { service_name, balance, fee, type_fee, note, status, expired } = data;
-
-      // Simpan informasi deposit ke database
-      const newDeposit = new Deposit({
-        userId,
-        amount,
-        status: 'pending',
-        uniqueCode,
-      });
-      await newDeposit.save();
-
-      await ctx.replyWithPhoto(
-        { url: qrcodeUrl },
-        {
-          caption: `Informasi Deposit:\n- Service Name: ${service_name}\n- Amount: ${amount}\n- Jumlah deposit: ${balance}\n- Fee: ${fee}\n- Type Fee: ${type_fee}\n- Note: ${note}\n- Status: ${status}\n- Expired: ${expired}`,
-        }
-      );
-
-      console.log(`Deposit request created: ${JSON.stringify(data)}`);
-    } else {
-      ctx.reply('Minimal deposit adalah Rp1000');
-      console.log(`Failed to create deposit request: ${JSON.stringify(response.data)}`);
-    }
-  } catch (error) {
-    ctx.reply('Gagal membuat permintaan deposit.');
-    console.log(`Failed to create deposit request: ${error.message}`);
-  }
-
-  // Hapus state setelah selesai
-  delete depositState[userId];
-});
 
 bot.launch();
 console.log('Bot Starting....')
