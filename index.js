@@ -50,7 +50,6 @@ const productSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   userId: { type: Number, required: true, unique: true },
   saldo: { type: Number, default: 0 },
-  email: { type: String, unique: true, sparse: true }, // email bisa null dan unik
 });
 
 // Schema Stock, sesuaikan dengan model Anda
