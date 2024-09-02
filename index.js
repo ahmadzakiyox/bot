@@ -858,85 +858,6 @@ bot.command('beli', async (ctx) => {
   }
 });
 
-// Command untuk membuat VPS
-bot.action('createvps', async (ctx) => {
-  // Inisialisasi pilihan pengguna
-  userSelections[ctx.from.id] = { type: 'vps' }; 
-  ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
-    [Markup.button.callback('🖥 1 GB / 1 vCPU', 'vps_size_s-1vcpu-1gb')],
-    [Markup.button.callback('🖥 2 GB / 1 vCPU', 'vps_size_s-1vcpu-2gb')],
-    [Markup.button.callback('🖥 2 GB / 2 vCPU', 'vps_size_s-2vcpu-2gb')],
-    [Markup.button.callback('🖥 4 GB / 2 vCPU', 'vps_size_s-2vcpu-4gb')],
-    [Markup.button.callback('🖥 8 GB / 4 vCPU', 'vps_size_s-4vcpu-8gb')]
-  ]));
-});
-
-// Command untuk membuat RDP
-bot.command('createrdp', async (ctx) => {
-  // Inisialisasi pilihan pengguna
-  userSelections[ctx.from.id] = { type: 'rdp' }; 
-  ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
-    [Markup.button.callback('🖥 1 GB / 1 vCPU', 'rdp_size_s-1vcpu-1gb')],
-    [Markup.button.callback('🖥 2 GB / 1 vCPU', 'rdp_size_s-1vcpu-2gb')],
-    [Markup.button.callback('🖥 2 GB / 2 vCPU', 'rdp_size_s-2vcpu-2gb')],
-    [Markup.button.callback('🖥 4 GB / 2 vCPU', 'rdp_size_s-2vcpu-4gb')],
-    [Markup.button.callback('🖥 8 GB / 4 vCPU', 'rdp_size_s-4vcpu-8gb')]
-  ]));
-});
-
-// Handle size selection
-bot.action(/(vps|rdp)_size_.+/, async (ctx) => {
-  const [type, , size] = ctx.match[0].split('_');
-  userSelections[ctx.from.id].size = size;
-  
-  console.log(`Selected size: ${size}`); // Logging ukuran yang dipilih
-  console.log(` object:`, ); // Logging objek prices
-
-  const price = prices[size];
-
-  // Periksa apakah harga valid
-  if (!price) {
-    ctx.reply('Harga untuk ukuran VM ini tidak valid.');
-    return;
-  }
-
-  // Fetch available OS images dynamically
-  const images = await doRequest('get', '/images?type=distribution');
-  
-  // Create vertical inline keyboard
-  const osButtons = images.images.map(image => [Markup.button.callback(`${image.distribution} ${image.name}`, `${type}_os_${image.slug}`)]);
-
-  ctx.reply(`Harga untuk ukuran yang dipilih adalah ${price} per bulan. Silakan pilih OS:`, Markup.inlineKeyboard(osButtons));
-  ctx.deleteMessage(); // Hapus pesan sebelumnya
-});
-
-// Handle OS selection
-bot.action(/(vps|rdp)_os_.+/, async (ctx) => {
-  const [type, , os] = ctx.match[0].split('_');
-  userSelections[ctx.from.id].os = os;
-  if (type === 'rdp') {
-    ctx.reply('Silakan berikan catatan untuk VM (misalnya, versi Windows yang ingin diinstal):');
-  } else {
-    ctx.reply('Silakan pilih region:', Markup.inlineKeyboard([
-      [Markup.button.callback('New York 3 (🇺🇲)', 'region_nyc3')],
-      [Markup.button.callback('San Francisco 2 (🇺🇲)', 'region_sfo2')],
-      [Markup.button.callback('Amsterdam 3 (🇳🇱)', 'region_ams3')],
-      [Markup.button.callback('Singapore 1 (🇸🇬)', 'region_sgp1')],
-      [Markup.button.callback('London 1 (🇬🇧)', 'region_lon1')],
-      [Markup.button.callback('Frankfurt 1 (🇩🇪)', 'region_fra1')],
-      [Markup.button.callback('Toronto 1 (🇨🇦)', 'region_tor1')]
-    ]));
-  }
-  ctx.deleteMessage(); // Hapus pesan sebelumnya
-});
-
-// Handle region selection
-bot.action(/region_.+/, async (ctx) => {
-  const region = ctx.match[0].split('_')[1];
-  userSelections[ctx.from.id].region = region;
-  ctx.reply('Please enter the VM name:');
-  ctx.deleteMessage(); // Hapus pesan sebelumnya
-});
 
 //============BOT ON============
 // Handle input dari pengguna untuk jumlah deposit
@@ -1014,150 +935,256 @@ bot.hears(/^\d+$/, async (ctx) => {
   delete depositState[userId];
 });
 
-// Handle note input for RDP
-bot.on('text', async (ctx) => {
-  const userSelection = userSelections[ctx.from.id];
+ // Handle size selection
+  bot.action(/(vps|rdp)_size_.+/, async (ctx) => {
+    const [type, , size] = ctx.match[0].split('_');
+    userSelections[ctx.from.id].size = size;
+    
+    console.log(`Selected size: ${size}`); // Logging ukuran yang dipilih
+    console.log(` object:`, ); // Logging objek prices
   
-  if (!userSelection) return; // Exit if no selection found
-
-  if (userSelection.type === 'rdp' && !userSelection.note && userSelection.os) {
-    userSelection.note = ctx.message.text;
-    ctx.reply('Please choose the region:', Markup.inlineKeyboard([
-      [Markup.button.callback('New York 3 (🇺🇲)', 'region_nyc3')],
-      [Markup.button.callback('San Francisco 2 (🇺🇲)', 'region_sfo2')],
-      [Markup.button.callback('Amsterdam 3 (🇳🇱)', 'region_ams3')],
-      [Markup.button.callback('Singapore 1 (🇸🇬)', 'region_sgp1')],
-      [Markup.button.callback('London 1 (🇬🇧)', 'region_lon1')],
-      [Markup.button.callback('Frankfurt 1 (🇩🇪)', 'region_fra1')],
-      [Markup.button.callback('Toronto 1 (🇨🇦)', 'region_tor1')]
-    ]));
-    ctx.deleteMessage(); // Delete previous message
-  } else if (userSelection.region && !userSelection.name) {
-    userSelection.name = ctx.message.text;
-    const { type, size, os, region, name, note } = userSelection;
-
-    // Make sure the user has an account and sufficient balance
-    const user = await User.findOne({ userId: ctx.from.id });
-    if (!user) {
-      return ctx.reply('Anda belum memiliki akun. Lakukan deposit terlebih dahulu.');
-    }
-
     const price = prices[size];
+  
+    // Periksa apakah harga valid
     if (!price) {
-      return ctx.reply('Harga untuk ukuran VM ini tidak valid.');
+      ctx.reply('Harga untuk ukuran VM ini tidak valid.');
+      return;
     }
-
-    const saldo = parseFloat(user.saldo);
-    if (isNaN(saldo)) {
-      return ctx.reply('Saldo Anda tidak valid.');
+  
+    // Fetch available OS images dynamically
+    const images = await doRequest('get', '/images?type=distribution');
+    
+    // Create vertical inline keyboard
+    const osButtons = images.images.map(image => [Markup.button.callback(`${image.distribution} ${image.name}`, `${type}_os_${image.slug}`)]);
+  
+    ctx.reply(`Harga untuk ukuran yang dipilih adalah ${price} per bulan. Silakan pilih OS:`, Markup.inlineKeyboard(osButtons));
+    ctx.deleteMessage(); // Hapus pesan sebelumnya
+  });
+  
+  // Command untuk membuat VPS
+bot.action('createvps', async (ctx) => {
+    // Inisialisasi pilihan pengguna
+    userSelections[ctx.from.id] = { type: 'vps' }; 
+    ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
+      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'vps_size_s-1vcpu-1gb')],
+      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'vps_size_s-1vcpu-2gb')],
+      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'vps_size_s-2vcpu-2gb')],
+      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'vps_size_s-2vcpu-4gb')],
+      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'vps_size_s-4vcpu-8gb')]
+    ]));
+  });
+  
+  // Command untuk membuat RDP
+  bot.command('createrdp', async (ctx) => {
+    // Inisialisasi pilihan pengguna
+    userSelections[ctx.from.id] = { type: 'rdp' }; 
+    ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
+      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'rdp_size_s-1vcpu-1gb')],
+      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'rdp_size_s-1vcpu-2gb')],
+      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'rdp_size_s-2vcpu-2gb')],
+      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'rdp_size_s-2vcpu-4gb')],
+      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'rdp_size_s-4vcpu-8gb')]
+    ]));
+  });
+  
+  // Handle size selection
+  bot.action(/(vps|rdp)_size_.+/, async (ctx) => {
+    const [type, , size] = ctx.match[0].split('_');
+    userSelections[ctx.from.id].size = size;
+    
+    console.log(`Selected size: ${size}`); // Logging ukuran yang dipilih
+    console.log(` object:`, ); // Logging objek prices
+  
+    const price = prices[size];
+  
+    // Periksa apakah harga valid
+    if (!price) {
+      ctx.reply('Harga untuk ukuran VM ini tidak valid.');
+      return;
     }
+  
+    // Fetch available OS images dynamically
+    const images = await doRequest('get', '/images?type=distribution');
+    
+    // Create vertical inline keyboard
+    const osButtons = images.images.map(image => [Markup.button.callback(`${image.distribution} ${image.name}`, `${type}_os_${image.slug}`)]);
+  
+    ctx.reply(`Harga untuk ukuran yang dipilih adalah ${price} per bulan. Silakan pilih OS:`, Markup.inlineKeyboard(osButtons));
+    ctx.deleteMessage(); // Hapus pesan sebelumnya
+  });
 
-    // Mengurangi saldo user
-    const newSaldo = saldo - price;
-    if (isNaN(newSaldo) || newSaldo < 0) {
-      return ctx.reply('Saldo Anda tidak mencukupi untuk membuat VM ini. Silakan lakukan deposit terlebih dahulu.');
+  // Handle OS selection
+  bot.action(/(vps|rdp)_os_.+/, async (ctx) => {
+    const [type, , os] = ctx.match[0].split('_');
+    userSelections[ctx.from.id].os = os;
+    if (type === 'rdp') {
+      ctx.reply('Silakan berikan catatan untuk VM (misalnya, versi Windows yang ingin diinstal):');
+    } else {
+      ctx.reply('Silakan pilih region:', Markup.inlineKeyboard([
+        [Markup.button.callback('New York 3 (🇺🇲)', 'region_nyc3')],
+        [Markup.button.callback('San Francisco 2 (🇺🇲)', 'region_sfo2')],
+        [Markup.button.callback('Amsterdam 3 (🇳🇱)', 'region_ams3')],
+        [Markup.button.callback('Singapore 1 (🇸🇬)', 'region_sgp1')],
+        [Markup.button.callback('London 1 (🇬🇧)', 'region_lon1')],
+        [Markup.button.callback('Frankfurt 1 (🇩🇪)', 'region_fra1')],
+        [Markup.button.callback('Toronto 1 (🇨🇦)', 'region_tor1')]
+      ]));
     }
-    user.saldo = newSaldo;
-    await user.save();
-
-    // VM creation logic
-    const password = generateRandomPassword();
-    const data = {
-      name,
-      region,
-      size,
-      image: os,
-      ssh_keys: null,
-      backups: false,
-      ipv6: false,
-      user_data: `#cloud-config\npassword: ${password}\nchpasswd: { expire: False }\nssh_pwauth: True`
-    };
-
-    if (type === 'vps') {
-      try {
-        // Membuat VPS
-        const response = await doRequest('post', '/droplets', data);
-        const droplet = response.droplet;
-
-        // Kirim pesan bahwa VM telah dibuat
-        ctx.reply(`VM created with ID: ${droplet.id}. Waiting for IP address...`);
-        
-        // Cek IP address secara berkala
-        const checkIP = setInterval(async () => {
-          try {
-            const response = await doRequest('get', `/droplets/${droplet.id}`);
-            const ip = response.droplet.networks?.v4?.[0]?.ip_address;
-
-            if (ip) {
-              clearInterval(checkIP);
-              ctx.reply(`VPS Anda telah dibuat dengan rincian berikut:
-              IP Address: ${ip}
-              Username: root
-              Password: ${password}`);
-              delete userSelections[ctx.from.id];
-            }
-          } catch (error) {
-            console.error(error);
-          }
-        }, 5000); // Check every 5 seconds
-
-      } catch (error) {
-        ctx.reply('Error creating VM.');
-        console.error(error);
-        delete userSelections[ctx.from.id];
+    ctx.deleteMessage(); // Hapus pesan sebelumnya
+  });
+  
+  // Handle region selection
+  bot.action(/region_.+/, async (ctx) => {
+    const region = ctx.match[0].split('_')[1];
+    userSelections[ctx.from.id].region = region;
+    ctx.reply('Please enter the VM name:');
+    ctx.deleteMessage(); // Hapus pesan sebelumnya
+  });
+  
+  // Handle note input for RDP
+  bot.on('text', async (ctx) => {
+    const userSelection = userSelections[ctx.from.id];
+    
+    if (!userSelection) return; // Exit if no selection found
+  
+    if (userSelection.type === 'rdp' && !userSelection.note && userSelection.os) {
+      userSelection.note = ctx.message.text;
+      ctx.reply('Please choose the region:', Markup.inlineKeyboard([
+        [Markup.button.callback('New York 3 (🇺🇲)', 'region_nyc3')],
+        [Markup.button.callback('San Francisco 2 (🇺🇲)', 'region_sfo2')],
+        [Markup.button.callback('Amsterdam 3 (🇳🇱)', 'region_ams3')],
+        [Markup.button.callback('Singapore 1 (🇸🇬)', 'region_sgp1')],
+        [Markup.button.callback('London 1 (🇬🇧)', 'region_lon1')],
+        [Markup.button.callback('Frankfurt 1 (🇩🇪)', 'region_fra1')],
+        [Markup.button.callback('Toronto 1 (🇨🇦)', 'region_tor1')]
+      ]));
+      ctx.deleteMessage(); // Delete previous message
+    } else if (userSelection.region && !userSelection.name) {
+      userSelection.name = ctx.message.text;
+      const { type, size, os, region, name, note } = userSelection;
+  
+      // Make sure the user has an account and sufficient balance
+      const user = await User.findOne({ userId: ctx.from.id });
+      if (!user) {
+        return ctx.reply('Anda belum memiliki akun. Lakukan deposit terlebih dahulu.');
       }
-    } else if (type === 'rdp') {
-      try {
-        // Membuat RDP VM
-        const response = await doRequest('post', '/droplets', data);
-        const droplet = response.droplet;
-        userSelections[ctx.from.id].droplet_id = droplet.id;
-        userSelections[ctx.from.id].password = password;
-        
-        // Kirim pesan bahwa VM sedang dibuat
-        ctx.reply(`VM created with ID: ${droplet.id}. Waiting for IP address...`);
-        
-        // Kirim data VM ke owner untuk konfirmasi
-        const checkIP = setInterval(async () => {
-          try {
-            const response = await doRequest('get', `/droplets/${droplet.id}`);
-            const ip = response.droplet.networks?.v4?.[0]?.ip_address;
+  
+      const price = prices[size];
+      if (!price) {
+        return ctx.reply('Harga untuk ukuran VM ini tidak valid.');
+      }
+  
+      const saldo = parseFloat(user.saldo);
+      if (isNaN(saldo)) {
+        return ctx.reply('Saldo Anda tidak valid.');
+      }
+  
+      // Mengurangi saldo user
+      const newSaldo = saldo - price;
+      if (isNaN(newSaldo) || newSaldo < 0) {
+        return ctx.reply('Saldo Anda tidak mencukupi untuk membuat VM ini. Silakan lakukan deposit terlebih dahulu.');
+      }
+      user.saldo = newSaldo;
+      await user.save();
+  
+      // VM creation logic
+      const password = generateRandomPassword();
+      const data = {
+        name,
+        region,
+        size,
+        image: os,
+        ssh_keys: null,
+        backups: false,
+        ipv6: false,
+        user_data: `#cloud-config\npassword: ${password}\nchpasswd: { expire: False }\nssh_pwauth: True`
+      };
+  
+      if (type === 'vps') {
+        try {
+          // Membuat VPS
+          const response = await doRequest('post', '/droplets', data);
+          const droplet = response.droplet;
+  
+          // Kirim pesan bahwa VM telah dibuat
+          ctx.reply(`VM created with ID: ${droplet.id}. Waiting for IP address...`);
 
-            if (ip) {
-              clearInterval(checkIP);
-              
-              const vmInfo = `New RDP VM request:
-              User ID: ${ctx.from.id}
-              User Name: ${ctx.from.username}
-              IP Address: ${ip}
-              Name: ${name}
-              Username: root
-              Password: ${password}
-              OS: ${os}
-              Note: ${note}
-              Size: ${size}
-              Region: ${region}`;
-
-              bot.telegram.sendMessage(global.ownerId, vmInfo, Markup.inlineKeyboard([
-                [Markup.button.callback('Confirm', `confirm_${ctx.from.id}`)],
-                [Markup.button.callback('Reject', `reject_${ctx.from.id}`)]
-              ]));
-
-              // Simpan IP address untuk penggunaan selanjutnya
-              userSelections[ctx.from.id].ip = ip;
+          // Cek IP address secara berkala
+          const checkIP = setInterval(async () => {
+            try {
+              const response = await doRequest('get', `/droplets/${droplet.id}`);
+              const ip = response.droplet.networks?.v4?.[0]?.ip_address;
+  
+              if (ip) {
+                clearInterval(checkIP);
+                ctx.reply(`VPS Anda telah dibuat dengan rincian berikut:
+                IP Address: ${ip}
+                Username: root
+                Password: ${password}`);
+                delete userSelections[ctx.from.id];
+              }
+            } catch (error) {
+              console.error(error);
             }
-          } catch (error) {
-            console.error(error);
-          }
-        }, 5000); // Check every 5 seconds
-      } catch (error) {
-        ctx.reply('Error creating VM.');
-        console.error(error);
-        delete userSelections[ctx.from.id];
+          }, 5000); // Check every 5 seconds
+  
+        } catch (error) {
+          ctx.reply('Error creating VM.');
+          console.error(error);
+          delete userSelections[ctx.from.id];
+        }
+      } else if (type === 'rdp') {
+        try {
+          // Membuat RDP VM
+          const response = await doRequest('post', '/droplets', data);
+          const droplet = response.droplet;
+          userSelections[ctx.from.id].droplet_id = droplet.id;
+          userSelections[ctx.from.id].password = password;
+          
+          // Kirim pesan bahwa VM sedang dibuat
+          ctx.reply(`VM created with ID: ${droplet.id}. Waiting for IP address...`);
+  
+          // Kirim data VM ke owner untuk konfirmasi
+          const checkIP = setInterval(async () => {
+            try {
+              const response = await doRequest('get', `/droplets/${droplet.id}`);
+              const ip = response.droplet.networks?.v4?.[0]?.ip_address;
+  
+              if (ip) {
+                clearInterval(checkIP);
+                
+                const vmInfo = `New RDP VM request:
+                User ID: ${ctx.from.id}
+                User Name: ${ctx.from.username}
+                IP Address: ${ip}
+                Name: ${name}
+                Username: root
+                Password: ${password}
+                OS: ${os}
+                Note: ${note}
+                Size: ${size}
+                Region: ${region}`;
+  
+                bot.telegram.sendMessage(global.ownerId, vmInfo, Markup.inlineKeyboard([
+                  [Markup.button.callback('Confirm', `confirm_${ctx.from.id}`)],
+                  [Markup.button.callback('Reject', `reject_${ctx.from.id}`)]
+                ]));
+  
+                // Simpan IP address untuk penggunaan selanjutnya
+                userSelections[ctx.from.id].ip = ip;
+              }
+            } catch (error) {
+              console.error(error);
+            }
+          }, 5000); // Check every 5 seconds
+        } catch (error) {
+          ctx.reply('Error creating VM.');
+          console.error(error);
+          delete userSelections[ctx.from.id];
+        }
       }
     }
-  }
-});
+  });
 
 // Handle confirmation from owner
 bot.action(/confirm_(\d+)/, async (ctx) => {
