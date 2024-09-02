@@ -6,7 +6,6 @@ const os = require('os');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
-const { doRequest, generateRandomPassword } = require('./functions');
 
 //============FILE============ 
 const usersave = './users.json';
