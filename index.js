@@ -33,7 +33,7 @@ let groupId = '-1002081929222' // ID grup Telegram gunakan Helper Bot untuk mend
 let channelId = '-1002160623851' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
 let PHOTO_URL = 'https://telegra.ph//file/a22656931d544e1bd216e.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
 let MONGODB_URI = 'mongodb+srv://ahmadzakime:lelang18@restapi.syyz2sc.mongodb.net/?retryWrites=true&w=majority&appName=Restapi'
-let DO_API = 'dop_v1_9b97b1d149d46c352b58b028c8492d5f0d7ce981738cdfa1a838da4ee04f5d90'
+let DO_APIKEY = 'dop_v1_9b97b1d149d46c352b58b028c8492d5f0d7ce981738cdfa1a838da4ee04f5d90'
 let SERVICE_PAYDISINI = '23'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
@@ -96,7 +96,7 @@ const doRequest = async (method, endpoint, data) => {
     method,
     url,
     headers: {
-      'Authorization' : `Bearer ${DO_API}`,
+      'Authorization' : `Bearer ${DO_APIKEY}`,
       'Content-Type': 'application/json'
     },
     data
