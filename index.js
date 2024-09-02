@@ -1,5 +1,4 @@
 //============LIB============ 
-require('./config')
 const { Telegraf, Markup, session } = require('telegraf');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -7,7 +6,6 @@ const os = require('os');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
-const { doRequest, generateRandomPassword, loadTransactionCount, saveTransactionCount, generate2FA, isOwner } = require('./functions');
 
 //============FILE============ 
 const usersave = './users.json';
@@ -28,6 +26,22 @@ const prices = {
   's-4vcpu-8gb': 120000
 };
 
+//============CONFIG============//
+let token = ["7451449092:AAESGC6N7xHp148fj5nAgkXOLUq-Ax18hoU"]// TOKEN BOT TELEGRAM
+let botname = 'HLXEVO'//NAMA UNTUK BOT 
+let ownerId = '1265481161'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
+let owner = 'ahmadzakiyo'//Username Owner
+let groupId = '-1001915142805' // ID grup Telegram gunakan Helper Bot untuk mendapatka ID Group dengan cara /info @Username_Group
+let channelId = '-1001818314717' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
+let PHOTO_URL = 'https://telegra.ph/file/e66a34344f80ac5af8ebe.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
+let MONGODB_URI = 'mongodb+srv://murafulan:lelang18@cluster0.qblcl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+let SERVICE_PAYDISINI = '11'//Nomor Service PAYDISINI
+let TYPEFEE = '1'//TYPE FEE PAYDISINI
+let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
+
+const bot = new Telegraf(token);
+bot.use(session());
+
 
 //==========MONGODB CONNECTION========== 
 mongoose.connect(MONGODB_URI, {
@@ -36,7 +50,7 @@ mongoose.connect(MONGODB_URI, {
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
-
+  
 // Schema definitions
 const productSchema = new mongoose.Schema({
   nama: { type: String, required: true },
@@ -52,13 +66,16 @@ const userSchema = new mongoose.Schema({
   saldo: { type: Number, default: 0 },
 });
 
+// Schema Stock, sesuaikan dengan model Anda
 const stockSchema = new mongoose.Schema({
   kode: String,
-  email: { type: String, required: true }, // Menambahkan required jika diperlukan
+  email: String,
+  username: String,
   password: String,
   twoFactorAuth: String, // Opsional 2FA
 });
 
+// Definisi model Deposit
 const depositSchema = new mongoose.Schema({
   userId: { type: Number, required: true },
   amount: { type: Number, required: true },
@@ -73,10 +90,34 @@ const Product = mongoose.model('Product', productSchema);
 const User = mongoose.model('User', userSchema);
 const Deposit = mongoose.model('Deposit', depositSchema);
 
+
+//============FUNCTION===========
+// Helper function to load transaction count
+const loadTransactionCount = () => {
+  try {
+    if (fs.existsSync(transactionCountFile)) {
+      const data = fs.readFileSync(transactionCountFile, 'utf8');
+      if (data) {
+        return JSON.parse(data).count || 0;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load transaction count:', err);
+  }
+  return 0;
+};
+
+// Helper function to save transaction count
+const saveTransactionCount = (count) => {
+  try {
+    fs.writeFileSync(transactionCountFile, JSON.stringify({ count }));
+  } catch (err) {
+    console.error('Failed to save transaction count:', err);
+  }
+};
+
 // Fungsi untuk memuat ID pengguna dari users.json
-
 function loadUsers() {
-
     if (fs.existsSync(usersFile)) {
         const data = fs.readFileSync(usersFile);
         try {
@@ -97,7 +138,29 @@ function saveUser(userId) {
         users.push(userId);
         fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
     }
+
+  
 }
+
+// Helper function to save users to JSON file
+const saveUsers = (users) => {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+};
+
+// Middleware to check if the user is the owner
+const isOwner = (ctx, next) => {
+  if (ctx.message.from.id === parseInt(ownerId, 10)) {
+    return next();
+  } else {
+    return ctx.reply('Anda tidak memiliki izin untuk menggunakan perintah ini.');
+  }
+};
+
+// Fungsi untuk escape karakter khusus Markdown
+function escapeMarkdown(text) {
+  return text.replace(/([_*[\]()~`>#+-=|{}.!])/g, '\\$1');
+}
+
 
 
 // Middleware to log all commands and handle unknown commands
@@ -110,7 +173,7 @@ bot.use((ctx, next) => {
     console.log(`[${timestamp}] User: @${username}, Command: ${command}`);
 
     if (command.startsWith('/')) {
-      const knownCommands = ['start', 'privacy', 'menu', 'beli', 'addsaldo', 'addproduk', 'delproduk', 'addstock', 'addstockall', 'setharga', 'resetdb', 'bc'];
+      const knownCommands = ['start', 'privacy', 'menu', 'beli', 'addsaldo', 'addproduk', 'delproduk', 'addstock', 'setharga', 'resetdb', 'bc'];
 
       if (!knownCommands.includes(command.substring(1).split(' ')[0])) {
         ctx.reply('⚠️ Command tidak ditemukan. Silakan gunakan perintah yang valid.');
@@ -124,21 +187,16 @@ bot.use((ctx, next) => {
 
 // Command start
 bot.command('start', (ctx) => {
-  try {
     const username = ctx.message.from.username;
-
     const userId = ctx.from.id;
-
     saveUser(userId);
     let user = User.findOne({ userId });
     if (!user) {
       user = new User({ userId });
-     user.save();
+      user.save();
     }
-    ctx.reply(`Halo ${username}! Nama saya ${botname}. Saya adalah BOT Sale Telegram! Klik /menu untuk mengetahui lebih lanjut tentang cara menggunakan bot ini.\n\nKirim perintah /privacy untuk melihat syarat dan ketentuan penggunaan bot.`);
-  } catch (e) {
-     ctx.reply('Terjadi kesalahan saat menampilkan menu.');
-  }
+    
+    ctx.reply(`Halo ${username}! Nama saya ${botname}. Saya adalah BOT Sale Telegram! Klik /menu untuk mengetahui lebih lanjut tentang cara menggunakan bot ini.\n\nKirim perintah /privacy untuk melihat syarat dan ketentuan penggunaan bot.`, { reply_to_message_id: ctx.message.message_id });
 });
 
 // Command menu 
@@ -344,18 +402,18 @@ bot.action(/^select_product_(\w+)$/, async (ctx) => {
   try {
     const product = await Product.findOne({ kode });
     if (!product) {
-      return ctx.reply('Produk tidak ditemukan.');
+      return ctx.reply('Produk tidak ditemukan.', { reply_to_message_id: messageId });
     }
 
     if (product.stock <= 0) {
-      return ctx.reply('Stok produk habis. Tidak ada jumlah yang bisa dipilih.');
+      return ctx.reply('Stok produk habis. Tidak ada jumlah yang bisa dipilih.', { reply_to_message_id: messageId });
     }
 
     try {
       await ctx.deleteMessage();  // Hapus pesan yang memicu aksi ini
     } catch (deleteError) {
       console.warn('Error deleting message:', deleteError);
-      await ctx.reply('Gagal menghapus pesan sebelumnya. Pesan mungkin sudah dihapus.');
+      await ctx.reply('Gagal menghapus pesan sebelumnya. Pesan mungkin sudah dihapus.', { reply_to_message_id: messageId });
     }
 
     const buttonCount = Array.from({ length: product.stock }, (_, i) => ({
@@ -387,7 +445,7 @@ Pilih jumlah akun yang ingin dibeli untuk ${product.nama}
     });
   } catch (error) {
     console.error('Error selecting product:', error);
-    ctx.reply('Terjadi kesalahan saat memilih produk.')
+    ctx.reply('Terjadi kesalahan saat memilih produk.', { reply_to_message_id: messageId })
     ctx.deleteMessage();  // Hapus pesan yang memicu aksi ini
   }
 });
@@ -402,7 +460,7 @@ bot.action(/^select_quantity_(\w+)_(\d+)$/, async (ctx) => {
   try {
     const product = await Product.findOne({ kode });
     if (!product) {
-      return ctx.reply('Produk tidak ditemukan.');
+      return ctx.reply('Produk tidak ditemukan.', { reply_to_message_id: messageId });
     }
     
     const user = await User.findOne({ userId });
@@ -421,7 +479,7 @@ bot.action(/^select_quantity_(\w+)_(\d+)$/, async (ctx) => {
     }
     
     if (stocks.length < jumlah) {
-      return ctx.reply('Stok produk tidak mencukupi untuk jumlah yang diminta.');
+      return ctx.reply('Stok produk tidak mencukupi untuk jumlah yang diminta.', { reply_to_message_id: messageId });
     }
     
     const stockIds = stocks.slice(0, jumlah).map(stock => stock._id);
@@ -450,6 +508,7 @@ bot.action(/^select_quantity_(\w+)_(\d+)$/, async (ctx) => {
     let accountInfos = stocks.slice(0, jumlah).map(stock => `
 Kode Produk    : ${kode}
 Email        : ${stock.email}
+Username     : ${stock.username}
 Password     : ${stock.password}
 ${stock.twoFactorAuth ? `2FA Code: ${stock.twoFactorAuth}` : ''}
 ────────────────────────
@@ -460,9 +519,9 @@ ${stock.twoFactorAuth ? `2FA Code: ${stock.twoFactorAuth}` : ''}
     fs.writeFileSync(filePath, accountInfos);
 
     if (jumlah > 1) {
-      await ctx.replyWithDocument({ source: filePath });
+      await ctx.replyWithDocument({ source: filePath }, { reply_to_message_id: messageId });
     } else {
-      await ctx.reply(accountInfos);
+      await ctx.reply(accountInfos, { reply_to_message_id: messageId });
     }
 
     fs.unlinkSync(filePath);
@@ -495,46 +554,17 @@ ${stock.twoFactorAuth ? `2FA Code: ${stock.twoFactorAuth}` : ''}
     });
 
     // Kirim pesan ke channel dengan foto
-    /*await bot.telegram.sendPhoto(channelId, PHOTO_URL, {
+    await bot.telegram.sendPhoto(channelId, PHOTO_URL, {
       caption: transactionMessage,
       parse_mode: 'Markdown',
-    });*/
+    });
 
     console.log(`Product purchased: ${JSON.stringify({ kode, jumlah, userId })}`);
-    ctx.reply('Pembelian berhasil. Terima kasih telah berbelanja.');
+    ctx.reply('Pembelian berhasil. Terima kasih telah berbelanja.', { reply_to_message_id: messageId });
   } catch (error) {
     console.error('Error selecting quantity:', error);
-    ctx.reply('Terjadi kesalahan saat memilih jumlah.');
+    ctx.reply('Terjadi kesalahan saat memilih jumlah.', { reply_to_message_id: messageId });
     ctx.deleteMessage();  // Hapus pesan yang memicu aksi ini
-  }
-});
-
-bot.command('neko', async (ctx) => {
-    try {
-        // Gunakan metode yang sesuai dari package @danitech/scraper
-        const result = await scp.random_image_anime_sfw(); // Menggunakan metode yang benar sesuai dokumentasi
-
-        // Kirim gambar ke pengguna
-        ctx.replyWithPhoto(result);
-    } catch (error) {
-        console.error('Error fetching image:', error);
-        ctx.reply('Sorry, I could not fetch an image at the moment.');
-    }
-});
-
-
-
-bot.command('ai', async (ctx) => {
-  const text = ctx.message.text.replace('').trim();
-  
-  try {
-    let ai = await herc.question({model:"gemma2-9b",content: text }).then(response => {
-      ctx.reply(response.reply.replace(/[_*[\]()~>#\+\-=|{}.!]/g, "\\$&"), {parse_mode: "MarkdownV2"})
-    });
-    
-  } catch (error) {
-    console.error(error);
-    ctx.reply('Terjadi kesalahan saat mencoba menghubungi AI', { reply_to_message_id: ctx.message.message_id });
   }
 });
 
@@ -688,14 +718,14 @@ bot.command('delproduk', isOwner, async (ctx) => {
   }
 });
 
-// Command /addstock// Command /addstock
+// Command /addstock
 bot.command('addstock', isOwner, async (ctx) => {
   const args = ctx.message.text.split(' ').slice(1);
-  if (args.length !== 3) {
-    return ctx.reply('Gunakan format: /addstock <kode_produk> <email> <password>', { reply_to_message_id: ctx.message.message_id });
+  if (args.length < 4 || args.length > 5) {
+    return ctx.reply('Gunakan format: /addstock <kode_produk> <email> <username> <password> [2fa, Tidak Wajib ]', { reply_to_message_id: ctx.message.message_id });
   }
 
-  const [kode, email, password] = args;
+  const [kode, email, username, password, twoFactorAuth] = args;
 
   try {
     const product = await Product.findOne({ kode });
@@ -707,7 +737,7 @@ bot.command('addstock', isOwner, async (ctx) => {
     product.stock += 1; // Menambahkan stock 1, sesuaikan jika diperlukan
 
     // Simpan data stock tambahan
-    const newStock = new Stock({ kode, email, password });
+    const newStock = new Stock({ kode, email, username, password, twoFactorAuth: twoFactorAuth || '' });
     await newStock.save();
 
     // Simpan perubahan produk
@@ -720,8 +750,6 @@ bot.command('addstock', isOwner, async (ctx) => {
   }
 });
 
-
-
 // Command /addstockall
 bot.command('addstockall', isOwner, async (ctx) => {
   // Ambil teks perintah dan pisahkan dengan koma
@@ -730,7 +758,7 @@ bot.command('addstockall', isOwner, async (ctx) => {
 
   // Validasi format data
   if (entries.length === 0 || entries.some(entry => entry.split(' ').length !== 4)) {
-    return ctx.reply('Gunakan format: /addstockall <kode_produk> <email> <password>, <kode_produk> <email> <username> <password>, ...', { reply_to_message_id: ctx.message.message_id });
+    return ctx.reply('Gunakan format: /addstockall <kode_produk> <email> <username> <password>, <kode_produk> <email> <username> <password>, ...', { reply_to_message_id: ctx.message.message_id });
   }
 
   try {
@@ -747,7 +775,7 @@ bot.command('addstockall', isOwner, async (ctx) => {
       product.stock += 1; // Menambahkan stock 1, sesuaikan jika diperlukan
 
       // Simpan data stock tambahan
-      const newStock = new Stock({ kode, email, password, twoFactorAuth: '' });
+      const newStock = new Stock({ kode, email, username, password, twoFactorAuth: '' });
       await newStock.save();
 
       // Simpan perubahan produk
@@ -785,17 +813,14 @@ bot.command('setharga', isOwner, async (ctx) => {
   }
 });
 
-// Handle beli// Command /beli
-
+// Handle beli
 bot.command('beli', async (ctx) => {
-
   const args = ctx.message.text.split(' ').slice(1);
-
   if (args.length !== 2) {
     return ctx.reply('Gunakan format: /beli <kode_produk> <jumlah_produk>', {reply_to_message_id: ctx.message.message_id});
   }
 
-  const [kode, jumlah] = [ctx.match[1], parseInt(ctx.match[2], 10)];
+  const [kode, jumlah] = args;
   const userId = ctx.message.from.id;
   const username = ctx.message.from.username || 'Unknown';
 
@@ -817,344 +842,23 @@ bot.command('beli', async (ctx) => {
       return ctx.reply('Saldo Anda tidak mencukupi.');
     }
 
-    // Cek dan ambil data stock dari stok yang ada
-    const stock = await Stock.findOne({ kode });
-    if (!stock) {
-      return ctx.reply('Stock produk tidak tersedia.');
+    // Cek dan ambil data stok dari stok yang ada
+    const stocks = await Stock.find({ kode }).limit(parseInt(jumlah));
+    if (stocks.length < parseInt(jumlah)) {
+      return ctx.reply('Stok produk tidak mencukupi untuk jumlah yang diminta.');
     }
 
-    // Kurangi saldo pengguna dan simpan perubahan
-    user.saldo -= totalHarga;
-    await user.save();
+    // Tampilkan opsi pembayaran
+    const paymentOptions = Markup.inlineKeyboard([
+      [Markup.button.callback('Bayar dengan Saldo', `pay_with_balance_${kode}_${jumlah}`)],
+      [Markup.button.callback('Bayar dengan PayDisini', `pay_with_paydisini_${kode}_${jumlah}`)],
+    ]);
 
-    // Kurangi stock produk
-    product.stock -= parseInt(jumlah);
-    product.terjual += parseInt(jumlah);
-    await product.save();
-
-    // Hapus data stock dari database
-    await Stock.deleteOne({ kode });
-
-    // Kirim data akun kepada pengguna
-    let accountInfo = `Pembelian berhasil! Berikut adalah data akun:\nEmail: ${stock.email}\nUsername: ${stock.username}\nPassword: ${stock.password}`;
-    if (stock.twoFactorAuth) {
-      accountInfo += `\n2FA: ${stock.twoFactorAuth}`;
-    }
-    ctx.reply(accountInfo, { reply_to_message_id: ctx.message.message_id });
-
-    // Update transaction count
-    let transactionCount = loadTransactionCount();
-    transactionCount++;
-    saveTransactionCount(transactionCount);
-
-const transactionMessage = `╭──── 〔 *NOTIF OTOMATIS* 〕
-*┊・ 🏷️| USERNAME:* ${username}
-*┊・ 📦| Barang yang di beli :* ${product.nama}
-*┊・ 🧾| Harga barang yang di beli :* Rp ${totalHarga}
-*┊・ 🔐| Transaksi berhasil:* ${transactionCount}
-   Pembelian barang berhasil, terima kasih telah berbelanja. Yuk beli akun di @nuxysaibot
-   
-   Auothor : @ahmadzakiyo
-   ©2024
-╰┈┈┈┈┈┈┈┈`;
-
-const photoUrl = 'https://telegra.ph/file/e66a34344f80ac5af8ebe.jpg'; // Ganti dengan URL foto yang sesuai
-
-// Kirim pesan ke grup dengan foto
-await bot.telegram.sendPhoto(global.groupId, photoUrl, {
-  caption: transactionMessage,
-  parse_mode: 'Markdown',
-});
-
-// Kirim pesan ke channel dengan foto
-await bot.telegram.sendPhoto(global.channelId, photoUrl, {
-  caption: transactionMessage,
-  parse_mode: 'Markdown',
-});
-
-
-    console.log(`Product purchased: ${JSON.stringify({ kode, jumlah, userId })}`);
+    return ctx.reply('Pilih metode pembayaran:', paymentOptions);
   } catch (error) {
     console.error('Error processing purchase:', error);
     ctx.reply('Terjadi kesalahan saat memproses pembelian.', { reply_to_message_id: ctx.message.message_id });
   }
-});
-
-bot.command('beli2', async (ctx) => {
-const args = ctx.message.text.split(' ').slice(1);
-
-  if (args.length !== 2) {
-    return ctx.reply('Gunakan format: /beli <kode_produk> <jumlah_produk>', {reply_to_message_id: ctx.message.message_id});
-  }
-
-  const [kode, jumlah] = [ctx.match[1], parseInt(ctx.match[2], 10)];
-  const userId = ctx.message.from.id;
-  const username = ctx.message.from.username || 'Unknown';
-
-  try {
-    // Cek apakah pengguna sudah terdaftar
-    const user = await User.findOne({ userId });
-    if (!user) {
-      return ctx.reply('Anda belum memiliki akun. Lakukan deposit terlebih dahulu.');
-    }
-
-    // Cek produk yang tersedia
-    const product = await Product.findOne({ kode });
-    if (!product) {
-      return ctx.reply('Produk tidak ditemukan.');
-    }
-
-    const totalHarga = product.harga * parseInt(jumlah);
-    if (user.saldo < totalHarga) {
-      return ctx.reply('Saldo Anda tidak mencukupi.');
-    }
-
-    // Cek dan ambil data stock dari stok yang ada
-    const stock = await Stock.findOne({ kode });
-    if (!stock) {
-      return ctx.reply('Stock produk tidak tersedia.');
-    }
-
-    // Kurangi saldo pengguna dan simpan perubahan
-    user.saldo -= totalHarga;
-    await user.save();
-
-    // Kurangi stock produk
-    product.stock -= parseInt(jumlah);
-    product.terjual += parseInt(jumlah);
-    await product.save();
-
-    // Hapus data stock dari database
-    await Stock.deleteOne({ kode });
-
-    let accountInfos = stocks.slice(0, jumlah).map(stock => `
-Kode Produk    : ${kode}
-Email        : ${stock.email}
-Password     : ${stock.password}
-${stock.twoFactorAuth ? `2FA Code: ${stock.twoFactorAuth}` : ''}
-────────────────────────
-    `).join('\n\n');
-
-    const fileName = `account-info-${userId}.txt`;
-    const filePath = path.join(__dirname, fileName);
-    fs.writeFileSync(filePath, accountInfos);
-
-    if (jumlah > 1) {
-      await ctx.replyWithDocument({ source: filePath });
-    } else {
-      await ctx.reply(accountInfos);
-    }
-
-    fs.unlinkSync(filePath);
-
-    await ctx.editMessageReplyMarkup({
-      inline_keyboard: []  // Menghapus semua tombol
-    });
-
-    // Update transaction count
-    let transactionCount = loadTransactionCount();
-    transactionCount++;
-    saveTransactionCount(transactionCount);
-    
-    // Pesan yang akan dikirim ke grup dan channel
-const transactionMessage = `╭──── 〔 *NOTIF OTOMATIS* 〕 
-*┊・ 🏷️| USERNAME:* ${username} 
-*┊・ 📦| Barang yang di beli :* ${Product.nama} 
-*┊・ 🧾| Harga barang yang di beli :* Rp ${totalHarga} 
-*┊・ 🔐| Transaksi berhasil:* ${transactionCount} 
-   Pembelian barang berhasil, terima kasih telah berbelanja. Yuk beli akun di @nuxysaibot 
-    
-   Author : @ahmadzakiyo 
-   ©2024 
-╰┈┈┈┈┈┈┈┈`; 
-
-// Kirim pesan ke grup tanpa foto
-await bot.telegram.sendMessage(global.groupId, transactionMessage, { 
-  parse_mode: 'Markdown', 
-}); 
-
-// Kirim pesan ke channel tanpa foto
-await bot.telegram.sendMessage(global.channelId, transactionMessage, { 
-  parse_mode: 'Markdown', 
-});
-
-    console.log(`Product purchased: ${JSON.stringify({ kode, jumlah, userId })}`);
-    ctx.reply('Pembelian berhasil. Terima kasih telah berbelanja.');
-  } catch (error) {
-    console.error('Error selecting quantity:', error);
-    ctx.reply('Terjadi kesalahan saat memilih jumlah.');
-    ctx.deleteMessage();  // Hapus pesan yang memicu aksi ini
-  }
-});
-//============BOT ON============
-// Handle input dari pengguna untuk jumlah deposit
-bot.hears(/^\d+$/, async (ctx) => {
-  const amount = parseInt(ctx.message.text);
-  const userId = ctx.from.id;
-
-  if (!depositState[userId] || depositState[userId].action !== 'request_amount') {
-    return ctx.reply('Anda tidak sedang dalam proses deposit.');
-  }
-
-  if (isNaN(amount) || amount <= 0) {
-    return ctx.reply('Jumlah deposit harus berupa angka positif.');
-  }
-
-  const uniqueCode = `user${userId}-${Date.now()}`;
-  const key = `${global.apikeyPAYDISINI}`;
-  const service = `${global.SERVICE_PAYDISINI}`;
-  const note = 'Deposit saldo';
-  const validTime = `${global.timepaydisini}`;
-  const typeFee = `${global.TYPEFEE}`;
-  const signatureString = `${key}${uniqueCode}${service}${amount}${validTime}NewTransaction`;
-  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
-
-  try {
-    const response = await axios.post('https://api.paydisini.co.id/v1/', new URLSearchParams({
-      key,
-      request: 'new',
-      unique_code: uniqueCode,
-      service,
-      amount,
-      note,
-      valid_time: validTime,
-      type_fee: typeFee,
-      payment_guide: true,
-      signature,
-    }), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-  }
-    });
-
-    if (response.data.success) {
-      const { data } = response.data;
-      const qrcodeUrl = data.qrcode_url;
-      const { service_name, balance, fee, type_fee, note, status, expired } = data;
-
-      // Simpan informasi deposit ke database
-      const newDeposit = new Deposit({
-        userId,
-        amount,
-        status: 'pending',
-        uniqueCode,
-      });
-      await newDeposit.save();
-
-      await ctx.replyWithPhoto(
-        { url: qrcodeUrl },
-        {
-          caption: `Informasi Deposit:\n- Service Name: ${service_name}\n- Amount: ${amount}\n- Jumlah deposit: ${balance}\n- Fee: ${fee}\n- Type Fee: ${type_fee}\n- Note: ${note}\n- Status: ${status}\n- Expired: ${expired}`,
-        }
-      );
-
-      console.log(`Deposit request created: ${JSON.stringify(data)}`);
-    } else {
-      ctx.reply('Minimal deposit adalah Rp1000');
-      console.log(`Failed to create deposit request: ${JSON.stringify(response.data)}`);
-    }
-  } catch (error) {
-    ctx.reply('Gagal membuat permintaan deposit.');
-    console.log(`Failed to create deposit request: ${error.message}`);
-  }
-
-  // Hapus state setelah selesai
-  delete depositState[userId];
-});
-
-bot.command('ig', async (ctx) => {
-  const url = ctx.message.text.split(' ')[1];
-  if (!url) {
-    return ctx.reply('Gunakan perintah /ig [Link] untuk mendownload Video.', { reply_to_message_id: ctx.message.message_id });
-  }
-
-  try {
-    // Memanggil endpoint API
-    const response = await axios.get(`https://botpyz-92685f78407d.herokuapp.com/api/download/savefrom?apikey=ZakiKey&url=${url}`);
-    const { url: videoUrl, thumb, sd, meta, video_quality, hosting, hd } = response.data;
-
-    // Memeriksa apakah URL video tersedia
-    if (videoUrl && videoUrl !== 'No video URL available') {
-      await ctx.replyWithVideo(videoUrl, {
-        caption: 'Video Berhasil Diunduh',
-        thumb: thumb || undefined // Menyediakan thumbnail jika ada
-      });
-    } else {
-      ctx.reply('Tidak dapat menemukan video dari URL yang diberikan.', { reply_to_message_id: ctx.message.message_id });
-    }
-    
-    console.log(response.data);
-  } catch (error) {
-    console.error(error);
-    ctx.reply('Terjadi kesalahan saat mencoba mengunduh video.', { reply_to_message_id: ctx.message.message_id });
-  }
-});
-
-bot.command('yt', async (ctx) => {
-  const url = ctx.message.text.split(' ')[1];
-  if (!url) {
-    return ctx.reply('Gunakan perintah /yt [Link] untuk mendownload Video.', { reply_to_message_id: ctx.message.message_id });
-  }
-
-  try {
-    const response = await axios.get(`https://botpyz-92685f78407d.herokuapp.com/api/download/yt?url=${url}&apikey=ZakiKey`);
-    const { url: videoUrl, meta } = response.data;
-
-    if (videoUrl && videoUrl !== 'No video URL available') {
-      // Mengunduh video
-      const videoResponse = await axios.get(videoUrl, { responseType: 'stream' });
-      const videoPath = `./video.mp4`;
-      const writer = fs.createWriteStream(videoPath);
-      videoResponse.data.pipe(writer);
-
-      writer.on('finish', async () => {
-        await ctx.replyWithVideo({ source: videoPath }, { caption: `Video Berhasil Diunduh\n\nTitle: ${meta.title}\nDuration: ${meta.duration}` });
-        fs.unlinkSync(videoPath); // Menghapus file setelah dikirim
-      });
-
-      writer.on('error', () => {
-        ctx.reply('Terjadi kesalahan saat mengunduh video.', { reply_to_message_id: ctx.message.message_id });
-      });
-    } else {
-      ctx.reply('Tidak dapat menemukan video dari URL yang diberikan.', { reply_to_message_id: ctx.message.message_id });
-    }
-    
-    console.log(response.data);
-  } catch (error) {
-    console.error(error);
-    ctx.reply('Terjadi kesalahan saat mencoba mengunduh video.', { reply_to_message_id: ctx.message.message_id });
-  }
-});
-
-
-bot.command('capcut', (ctx) => {
-  const url = ctx.message.text.split(' ')[1];
-  if (!url) {
-    return ctx.reply('Gunakan perintah /capcut [Link] untuk mendownload Video.', { reply_to_message_id: ctx.message.message_id });
-  }
-  ctx.reply(wait, { reply_to_message_id: ctx.message.message_id })
-  if (!url) {
-    return ctx.reply('Silakan sertakan tautan video CapCut.', { reply_to_message_id: ctx.message.message_id });
-  }
-
-  fetchJson(`https://botpyz-92685f78407d.herokuapp.com/api/download/savefrom?apikey=ZakiKey&url=${url}`)
-    .then(response => {
-      const data = response.data;
-      
-      // Dapatkan tautan video dalam kualitas terbaik
-      //const videoUrl = data['url']
-      
-      // Kirim video ke pengguna
-      Object.keys(data).forEach(key => {
-      console.log(data[key])
-      ctx.replyWithVideo({ url: data.medias.url });
-    });
-      //ctx.replyWithVideo({ url: videoUrl });
-    })
-    .catch(error => {
-      console.error('Error fetching data:', error);
-      ctx.reply('Maaf, terjadi kesalahan saat mengunduh video.', { reply_to_message_id: ctx.message.message_id });
-    });
 });
 
 // Command untuk membuat VPS
@@ -1453,6 +1157,82 @@ const listVMs = async (ctx) => {
     console.error('Error fetching VM list:', error);
   }
 };
+
+//============BOT ON============
+// Handle input dari pengguna untuk jumlah deposit
+bot.hears(/^\d+$/, async (ctx) => {
+  const amount = parseInt(ctx.message.text);
+  const userId = ctx.from.id;
+
+  if (!depositState[userId] || depositState[userId].action !== 'request_amount') {
+    return ctx.reply('Anda tidak sedang dalam proses deposit.');
+  }
+
+  if (isNaN(amount) || amount <= 0) {
+    return ctx.reply('Jumlah deposit harus berupa angka positif.');
+  }
+
+  const uniqueCode = `user${userId}-${Date.now()}`;
+  const key = '1783ea2a14078efc10c173bc882c8faa';
+  const service = '11';
+  const note = 'Deposit saldo';
+  const validTime = `${timepaydisini}`;
+  const typeFee = '1';
+  const signatureString = `${key}${uniqueCode}${service}${amount}${validTime}NewTransaction`;
+  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
+
+  try {
+    const response = await axios.post('https://api.paydisini.co.id/v1/', new URLSearchParams({
+      key,
+      request: 'new',
+      unique_code: uniqueCode,
+      service,
+      amount,
+      note,
+      valid_time: validTime,
+      type_fee: typeFee,
+      payment_guide: true,
+      signature,
+    }), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+  }
+    });
+
+    if (response.data.success) {
+      const { data } = response.data;
+      const qrcodeUrl = data.qrcode_url;
+      const { service_name, balance, fee, type_fee, note, status, expired } = data;
+
+      // Simpan informasi deposit ke database
+      const newDeposit = new Deposit({
+        userId,
+        amount,
+        status: 'pending',
+        uniqueCode,
+      });
+      await newDeposit.save();
+
+      await ctx.replyWithPhoto(
+        { url: qrcodeUrl },
+        {
+          caption: `Informasi Deposit:\n- Service Name: ${service_name}\n- Amount: ${amount}\n- Jumlah deposit: ${balance}\n- Fee: ${fee}\n- Type Fee: ${type_fee}\n- Note: ${note}\n- Status: ${status}\n- Expired: ${expired}`,
+        }
+      );
+
+      console.log(`Deposit request created: ${JSON.stringify(data)}`);
+    } else {
+      ctx.reply('Minimal deposit adalah Rp1000');
+      console.log(`Failed to create deposit request: ${JSON.stringify(response.data)}`);
+    }
+  } catch (error) {
+    ctx.reply('Gagal membuat permintaan deposit.');
+    console.log(`Failed to create deposit request: ${error.message}`);
+  }
+
+  // Hapus state setelah selesai
+  delete depositState[userId];
+});
 
 bot.launch();
 console.log('Bot Starting....')
