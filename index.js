@@ -15,8 +15,6 @@ const transactionCountFile = path.join(__dirname, 'transaction_count.json');
 const scp = require('@danitech/scraper');
 // State untuk menyimpan ID pengguna yang sedang melakukan deposit
 const depositState = {};
-const bot = new Telegraf(token);
-bot.use(session());
 const userSelections = {};
 const prices = {
   's-1vcpu-1gb': 30000,
@@ -38,7 +36,8 @@ let MONGODB_URI = 'mongodb+srv://murafulan:lelang18@cluster0.qblcl.mongodb.net/?
 let SERVICE_PAYDISINI = '11'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
-
+const bot = new Telegraf(token);
+bot.use(session());
 
 //==========MONGODB CONNECTION========== 
 mongoose.connect(MONGODB_URI, {
