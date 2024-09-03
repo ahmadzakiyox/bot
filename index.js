@@ -17,11 +17,11 @@ const scp = require('@danitech/scraper');
 const depositState = {};
 const userSelections = {};
 const prices = {
-  's-1vcpu-1gb': 30000,
+  's-1vcpu-1gb': 35000,
   's-1vcpu-2gb': 45000,
-  's-2vcpu-2gb': 60000,
-  's-2vcpu-4gb': 80000,
-  's-4vcpu-8gb': 120000
+  's-2vcpu-2gb': 55000,
+  's-2vcpu-4gb': 75000,
+  's-4vcpu-8gb': 110000
 };
 
 //============CONFIG============//
@@ -1106,11 +1106,11 @@ bot.action('createvps', async (ctx) => {
     // Inisialisasi pilihan pengguna
     userSelections[ctx.from.id] = { type: 'vps' }; 
     ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
-      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'vps_size_s-1vcpu-1gb')],
-      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'vps_size_s-1vcpu-2gb')],
-      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'vps_size_s-2vcpu-2gb')],
-      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'vps_size_s-2vcpu-4gb')],
-      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'vps_size_s-4vcpu-8gb')]
+      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'vps_size_s-1vcpu-1gb 35K')],
+      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'vps_size_s-1vcpu-2gb 45K')],
+      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'vps_size_s-2vcpu-2gb 55K')],
+      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'vps_size_s-2vcpu-4gb 75K')],
+      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'vps_size_s-4vcpu-8gb 110K')]
     ]));
   });
   
@@ -1119,11 +1119,11 @@ bot.action('createvps', async (ctx) => {
     // Inisialisasi pilihan pengguna
     userSelections[ctx.from.id] = { type: 'rdp' }; 
     ctx.reply('Silakan pilih Spek VM yang ingin dibuat:', Markup.inlineKeyboard([
-      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'rdp_size_s-1vcpu-1gb')],
-      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'rdp_size_s-1vcpu-2gb')],
-      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'rdp_size_s-2vcpu-2gb')],
-      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'rdp_size_s-2vcpu-4gb')],
-      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'rdp_size_s-4vcpu-8gb')]
+      [Markup.button.callback('🖥 1 GB / 1 vCPU', 'rdp_size_s-1vcpu-1gb 35K')],
+      [Markup.button.callback('🖥 2 GB / 1 vCPU', 'rdp_size_s-1vcpu-2gb 45K')],
+      [Markup.button.callback('🖥 2 GB / 2 vCPU', 'rdp_size_s-2vcpu-2gb 55K')],
+      [Markup.button.callback('🖥 4 GB / 2 vCPU', 'rdp_size_s-2vcpu-4gb 75K')],
+      [Markup.button.callback('🖥 8 GB / 4 vCPU', 'rdp_size_s-4vcpu-8gb 110K')]
     ]));
   });
   
