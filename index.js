@@ -33,7 +33,7 @@ let groupId = '-1002081929222' // ID grup Telegram gunakan Helper Bot untuk mend
 let channelId = '-1002160623851' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
 let PHOTO_URL = 'https://telegra.ph//file/a22656931d544e1bd216e.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
 let MONGODB_URI = 'mongodb+srv://ahmadzakime:lelang18@restapi.syyz2sc.mongodb.net/?retryWrites=true&w=majority&appName=Restapi'
-let DO_APIKEY = 'dop_v1_9b97b1d149d46c352b58b028c8492d5f0d7ce981738cdfa1a838da4ee04f5d90'
+let DO_APIKEY = 'dop_v1_3351ba67bd216a12fa93e52c192c8f17312a4decadae75d43e52c2c312977908'
 let SERVICE_PAYDISINI = '23'//Nomor Service PAYDISINI
 let TYPEFEE = '1'//TYPE FEE PAYDISINI
 let timepaydisini = '1800'// Waktu timer EXP untuk QRIS Paydisini
@@ -252,7 +252,6 @@ bot.command('menu', async (ctx) => {
               { text: 'CEKSALDO', callback_data: 'ceksaldo' }
             ],
             [
-              { text: 'LIST PRODUK', callback_data: 'listproduk' },
               { text: 'INFO', callback_data: 'info' }
             ],
             [
@@ -843,7 +842,7 @@ bot.command('setharga', isOwner, async (ctx) => {
   }
 });
 
-// Handle beli
+// Command /beli
 bot.command('beli', async (ctx) => {
   const args = ctx.message.text.split(' ').slice(1);
   if (args.length !== 2) {
@@ -872,25 +871,133 @@ bot.command('beli', async (ctx) => {
       return ctx.reply('Saldo Anda tidak mencukupi.');
     }
 
-    // Cek dan ambil data stok dari stok yang ada
-    const stocks = await Stock.find({ kode }).limit(parseInt(jumlah));
-    if (stocks.length < parseInt(jumlah)) {
-      return ctx.reply('Stok produk tidak mencukupi untuk jumlah yang diminta.');
+    // Cek dan ambil data stock dari stok yang ada
+    const stock = await Stock.findOne({ kode });
+    if (!stock) {
+      return ctx.reply('Stock produk tidak tersedia.');
     }
 
-    // Tampilkan opsi pembayaran
-    const paymentOptions = Markup.inlineKeyboard([
-      [Markup.button.callback('Bayar dengan Saldo', `pay_with_balance_${kode}_${jumlah}`)],
-      [Markup.button.callback('Bayar dengan PayDisini', `pay_with_paydisini_${kode}_${jumlah}`)],
-    ]);
+    // Kurangi saldo pengguna dan simpan perubahan
+    user.saldo -= totalHarga;
+    await user.save();
 
-    return ctx.reply('Pilih metode pembayaran:', paymentOptions);
+    // Kurangi stock produk
+    product.stock -= parseInt(jumlah);
+    product.terjual += parseInt(jumlah);
+    await product.save();
+
+    // Hapus data stock dari database
+    await Stock.deleteOne({ kode });
+
+    // Kirim data akun kepada pengguna
+    let accountInfo = `Pembelian berhasil! Berikut adalah data akun:\nEmail: ${stock.email}\nUsername: ${stock.username}\nPassword: ${stock.password}`;
+    if (stock.twoFactorAuth) {
+      accountInfo += `\n2FA: ${stock.twoFactorAuth}`;
+    }
+    ctx.reply(accountInfo, { reply_to_message_id: ctx.message.message_id });
+
+    // Update transaction count
+    let transactionCount = loadTransactionCount();
+    transactionCount++;
+    saveTransactionCount(transactionCount);
+
+const transactionMessage = `╭──── 〔 *NOTIF OTOMATIS* 〕
+*┊・ 🏷️| USERNAME:* ${username}
+*┊・ 📦| Barang yang di beli :* ${product.nama}
+*┊・ 🧾| Harga barang yang di beli :* Rp ${totalHarga}
+*┊・ 🔐| Transaksi berhasil:* ${transactionCount}
+   Pembelian barang berhasil, terima kasih telah berbelanja. Yuk beli akun di @nuxysaibot
+   
+   Auothor : @ahmadzakiyo
+   ©2024
+╰┈┈┈┈┈┈┈┈`;
+
+const photoUrl = 'https://telegra.ph/file/e66a34344f80ac5af8ebe.jpg'; // Ganti dengan URL foto yang sesuai
+
+// Kirim pesan ke grup dengan foto
+await bot.telegram.sendPhoto(groupId, photoUrl, {
+  caption: transactionMessage,
+  parse_mode: 'Markdown',
+});
+
+// Kirim pesan ke channel dengan foto
+await bot.telegram.sendPhoto(channelId, photoUrl, {
+  caption: transactionMessage,
+  parse_mode: 'Markdown',
+});
+
+
+    console.log(`Product purchased: ${JSON.stringify({ kode, jumlah, userId })}`);
   } catch (error) {
     console.error('Error processing purchase:', error);
     ctx.reply('Terjadi kesalahan saat memproses pembelian.', { reply_to_message_id: ctx.message.message_id });
   }
 });
 
+// Command /listproduk
+bot.command('listproduk', async (ctx) => {
+  try {
+    const products = await Product.find();
+    if (products.length === 0) {
+      return ctx.reply('Tidak ada produk yang tersedia.', { reply_to_message_id: ctx.message.message_id });
+    }
+
+    const validProducts = products.filter(p => p.nama && p.kode && p.harga !== undefined);
+
+    if (validProducts.length === 0) {
+      return ctx.reply('Tidak ada produk yang valid tersedia.');
+    }
+
+    const header = `
+╭────〔 *PRODUCT LIST📦* 〕─ 
+┊・ Jika tidak mengetahui ketik #caraorder
+┊・ Untuk membeli Ketik Perintah #order atau #buy 
+┊・ #buy *code* *jumlah*
+┊・ *Contoh : #buy YTGAR 1*
+┊・ Pastikan Code & Jumlah Akun di *Ketik* dengan *benar*
+╰┈┈┈┈┈┈┈┈
+    `;
+
+    const response = validProducts
+      .map(p => `
+╭──── 〔 *${p.nama.toUpperCase()}* 〕
+*┊・ 🏷️| Harga:* Rp ${p.harga.toLocaleString('id-ID')}
+*┊・ 📦| Stock Tersedia :* ${p.stock}
+*┊・ 🧾| Stock Terjual :* ${p.terjual}
+*┊・ 🔐| Code:* ${p.kode}
+*┊・ 📝| Deskripsi:* ${p.deskripsi}
+╰┈┈┈┈┈┈┈┈
+      `)
+      .join('\n');
+
+    ctx.replyWithMarkdown(`${header}\n${response}`, { reply_to_message_id: ctx.message.message_id });
+  } catch (error) {
+    console.error('Error listing products:', error);
+    ctx.reply('Terjadi kesalahan saat menampilkan daftar produk.', { reply_to_message_id: ctx.message.message_id } );
+  }
+});
+
+// Command /delproduk
+bot.command('delproduk', isOwner, async (ctx) => {
+  const args = ctx.message.text.split(' ').slice(1);
+  if (args.length !== 1) {
+    return ctx.reply('Gunakan format: /delproduk <kode_produk>', { reply_to_message_id: ctx.message.message_id });
+  }
+
+  const kode = args[0];
+
+  try {
+    const result = await Product.deleteOne({ kode });
+    if (result.deletedCount === 0) {
+      ctx.reply('Produk tidak ditemukan.', { reply_to_message_id: ctx.message.message_id });
+    } else {
+      ctx.reply('Produk berhasil dihapus.', { reply_to_message_id: ctx.message.message_id });
+    }
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    ctx.reply('Terjadi kesalahan saat menghapus produk.', { reply_to_message_id: ctx.message.message_id });
+  }
+});
 
 //============BOT ON============
 // Handle input dari pengguna untuk jumlah deposit
@@ -1198,7 +1305,7 @@ bot.action('createvps', async (ctx) => {
                 Size: ${size}
                 Region: ${region}`;
   
-                bot.telegram.sendMessage(global.ownerId, vmInfo, Markup.inlineKeyboard([
+                bot.telegram.sendMessage(ownerId, vmInfo, Markup.inlineKeyboard([
                   [Markup.button.callback('Confirm', `confirm_${ctx.from.id}`)],
                   [Markup.button.callback('Reject', `reject_${ctx.from.id}`)]
                 ]));
