@@ -203,7 +203,7 @@ bot.use((ctx, next) => {
     console.log(`[${timestamp}] User: @${username}, Command: ${command}`);
 
     if (command.startsWith('/')) {
-      const knownCommands = ['start', 'privacy', 'menu', 'beli', 'addsaldo', 'addproduk', 'delproduk', 'addstock', 'setharga', 'resetdb', 'bc'];
+      const knownCommands = ['start', 'privacy', 'createrdp', 'createvps', 'ceksaldo', 'caraorder', 'menu', '2fa', 'beli', 'listproduk', 'deposit', 'leaderboard', 'tiktok', 'addsaldo', 'addproduk', 'delproduk', 'addstock', 'setharga', 'resetdb', 'bc', 'listvm'];
 
       if (!knownCommands.includes(command.substring(1).split(' ')[0])) {
         ctx.reply('⚠️ Command tidak ditemukan. Silakan gunakan perintah yang valid.');
