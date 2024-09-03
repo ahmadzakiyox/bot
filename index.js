@@ -242,7 +242,17 @@ bot.command('menu', async (ctx) => {
 ╰❒ 
 
 ╭─❒ 「 USER MENU 」 
+├ - /beli 
 ╰❒ 
+
+╭─❒ 「 OWNER MENU 」 
+├ - /addproduk 
+├ - /delproduk
+├ - /setharga
+├ - /resetdb
+├ - /bc
+╰❒ 
+
       `,
       {
         reply_markup: {
