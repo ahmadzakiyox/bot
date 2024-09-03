@@ -25,7 +25,7 @@ const prices = {
 };
 
 //============CONFIG============//
-let token = ["7132427541:AAEFLERuvFo9MYy8LSyjpaYDrBui408gmwA"]// TOKEN BOT TELEGRAM
+let token = ["5913815080:AAG9ZZfdShhl8pCUPmzcE0OwlnmyRg6EYQU"]// TOKEN BOT TELEGRAM
 let botname = 'BOGEL STORE BOT'//NAMA UNTUK BOT 
 let ownerId = '6752163466'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
 let owner = 'BogelStore1'//Username Owner
