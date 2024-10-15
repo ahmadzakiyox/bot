@@ -26,9 +26,9 @@ const prices = {
 
 //============CONFIG============//
 let token = ["5913815080:AAG9ZZfdShhl8pCUPmzcE0OwlnmyRg6EYQU"]// TOKEN BOT TELEGRAM
-let botname = 'BOGEL STORE BOT'//NAMA UNTUK BOT 
+let botname = 'NUXYS STORE'//NAMA UNTUK BOT 
 let ownerId = '6752163466'//ID OWNER TELEGRAM bisa pakai Bot Rose untuk mendapatkan user ID
-let owner = 'BogelStore1'//Username Owner
+let owner = 'ahmadzakiyo'//Username Owner
 let groupId = '-1002081929222' // ID grup Telegram gunakan Helper Bot untuk mendapatka ID Group dengan cara /info @Username_Group
 let channelId = '-1002160623851' // ID channel Telegram gunakan Helper Bot untuk mendapatka ID Channel dengan cara /info @Username_Channel
 let PHOTO_URL = 'https://telegra.ph//file/a22656931d544e1bd216e.jpg'//LINK PHOTO UNTUK DI TAMPILKAN DALAM BROADCAST JIKA ADA USER / BUYYER YANG MELAKUKAN PEMBELIAN
@@ -1024,7 +1024,7 @@ bot.hears(/^\d+$/, async (ctx) => {
   }
 
   const uniqueCode = `user${userId}-${Date.now()}`;
-  const key = 'fdf655de25e8b2da1f757206fa631cb9';
+  const key = 'f0f40602286b844ae552d1bcbdb7edfc';
   const service = '11';
   const note = 'Deposit saldo';
   const validTime = `${timepaydisini}`;
