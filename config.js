@@ -1,7 +1,7 @@
 // TOKEN BOT TELEGRAM
 global.token = ["5913815080:AAG9ZZfdShhl8pCUPmzcE0OwlnmyRg6EYQU"]
 
-global.apikeyPAYDISINI = 'e4c7b0ba43f6e0ae7f70e6e3cbe6c93c'//APIKEY PAYDISINI
+global.apikeyPAYDISINI = 'f0f40602286b844ae552d1bcbdb7edfc'//APIKEY PAYDISINI
 
 global.DO_APIKEY = 'APIKEYDODISINI'
 
